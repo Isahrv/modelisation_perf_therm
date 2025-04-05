@@ -5,9 +5,23 @@ format: html
 editor: visual
 ---
 
+# Chargement des libraries
+
+```{r}
+library(caret)
+library(pls)
+library(ggplot2)
+library(gridExtra)
+library(corrplot)
+library(FactoMineR)
+library(factoextra)
+library(car)
+```
+
 # Import des données
 
 ```{r}
+setwd("C:/Users/isali/OneDrive/Documents/cours/M1 ECAP/S2/Modélisation variables latentes/modelisation_perf_therm")
 upenn <- read.delim("upenn.txt", sep = "\t", header = TRUE)
 gt <- read.delim("gt.txt", sep = "\t", header = TRUE)
 ```
@@ -15,16 +29,202 @@ gt <- read.delim("gt.txt", sep = "\t", header = TRUE)
 # Exploration des données
 
 ```{r}
-# suppression de la colonne ID
-upenn = (upenn[,2:33])
-gt = (gt[,2:33])
-
 str(upenn)
 str(gt)
+colnames(upenn)
 ```
 
 ```{r}
-n = nrow(upenn)
-p = ncol(upenn)-1 # nombre de predicteurs
+# création de la variable Y
+upenn$total = upenn$HeatTotal+upenn$CoolTotal
+gt$total = gt$HeatTotal+gt$CoolTotal
+```
+
+```{r}
+# suppression des colonnes des variables qui ne servent plus (qui ont servis pour le Y, et ID)
+upenn = (upenn[,6:34])
+gt = (gt[,6:34])
+```
+
+```{r}
+# création du jeu de données complet
+df_complet <- rbind(upenn, gt)
+```
+
+```{r}
+n = nrow(df_complet)
+p = ncol(df_complet)-1 # nombre de predicteurs
+```
+
+# Analyse descriptive
+
+```{r}
+plot(df_complet$total, df_complet$zone_area)
+plot(df_complet$total, df_complet$bldg_height)
+plot(df_complet$total, df_complet$op_S_area)
+
+# graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure
+```
+
+# graphique à modifier on voit rien, peut-être afficher juste les chiffres?
+```{r}
+# matrice des correlations
+corrplot::corrplot(cor(df_complet),method="color",type="upper",
+                   addCoef.col = "black",order="FPC")
+# on remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables
+# avec une corrélation > à 0.6 pour quasi toutes en valeur absolue
+# d'autres variables sont aussi très corrélées entre elles
+# On remarque une structure de corrélation forte 
+# => montre l'intérêt d'utiliser des méthodes à var latentes et de ne pas se limiter à la régression multiple
+```
+
+```{r}
+# distribution des valeurs observes pour les differentes variables 
+ggp<-list()
+for (i in 1:ncol(df_complet)){
+    ggp[[i]] <- ggplot(df_complet, aes(x = .data[[names(upenn)[i]]])) +
+    geom_histogram()
+}
+grid.arrange(grobs=ggp, ncol=6,nrow=5) 
+# Nous observons que de nombreuses variables n'ont pas une distribution qui paraît normale
+# La variable à expliquer, "total" peut alors être transformé en racine carré afin de voir si cela améliore la distribution de ces erreurs
+```
+
+## Transformation du Y en racine carré
+
+```{r}
+df_complet$total <- sqrt(df_complet$total)
+
+ggplot(df_complet, aes(x = total))+
+      geom_histogram()
+
+# Nous observons désormais que la distribution de la variable Y semble davantage normale une fois mise en racine carré. Ainsi, nous conserverons cette forme pour la suite de l'analyse.
+# Néanmoins, nous constatons la présence potentielle d'une valeur atypique.
+```
+
+```{r}
+boxplot(df_complet$total)
+
+# La représentation de la boîte à moustache ne nous montre pas de valeurs potentiellement atypiques. Alors, nous conserverons toutes les observations pour la suite de l'analyse.
+```
+
+## ACP
+
+```{r}
+# ACP avec Y en illustration puisqu'on fera un modèle PCR par la suite
+respca=PCA(df_complet, quanti.sup = 29, scale = TRUE)
+fviz_screeplot(respca)
+fviz_pca_var(respca)
+round(respca$var$cos2,2)
+
+# On remarque que les 2 premières dimensions à peu près 35,4% de la variance, ce qui n'est pas très élevé
+# Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment 
+# L'ACP nous confirme alors la structure de forte corrélation.
+
+# faire + d'interprétation pour la corrélation des variables avec les dimensiosn par rapport aux flèches
+
+```
+
+## Vif
+
+```{r}
+model.lm = lm(total~., data = df_complet)
+summary(model.lm)
+barplot(vif(model.lm), las = 2)
+abline(h=5, col='red')
+
+# Nous constatons que 10 variables ont un vif supérieur à 5, donc 7 qui ont un vif supérieur à 10
+# La multicollinéarité sur ce jeu de données est très élevée.
+```
+
+est-ce qu'on doit enlever les var du coup??
+
+# PCR
+
+```{r}
+## PCR
+pcrtrain<-pcr(lCMEDV~.,data=housdata2[trainset, ],ncomp=min(n-1,p),scale=TRUE, validation = "CV")    
+# on peut faire varier le nb de segment pour la validation croisée
+# ici on le laisse faire
+
+R2(pcrtrain, estimate = "all")
+validationplot(pcrtrain,val.type="R2",type="b", estimate = "all")
+# estimate all pour lui demander à la fois les indicateurs pour
+# l'échantillon d'apprentissage et la cross validation
+# plus le R2 est proche du train, ???
+
+RMSEP(pcrtrain)
+validationplot(pcrtrain, type="b", estimate = "all")
+# permet aussi de choisir le nb de composante
+# 1 quand il y a un plateau
+# 2 quand l'erreur d'apprentissage devient trop importante
+
+ncp =selectNcomp(pcrtrain, method="onesigma")
+# sélectionne les composantes à garder mais va jusqu'au dernier pallier
+# donc pas forcément satisfaisant
+
+pcrtrain<-pcr(lCMEDV~.,data=housdata2[trainset, ],ncomp=ncp,scale=TRUE, validation = "CV")    
+# on a sélectionné 11 composantes
+
+help(predict)
+# on trainset
+predtrainpcr=predict(pcrtrain, type="response")
+cbind(pcrtrain$fitted.values,predtrainpcr)
+# on testset
+predtestpcr=predict(pcrtrain,newdata=housdata2[testset, ], type="response")
+dim(predtestpcr)
+rmsep_pcr=sqrt(apply(  (housdata2[testset, 1]-predtestpcr[,1,])^2,2,mean))
+rmsep0=sqrt(mean((housdata2[testset, 1]-mean(housdata2[trainset, 1]))^2))
+rmsep_pcr=c(rmsep0,rmsep_pcr)
+round(rmsep_pcr,4)
+
+# R2 on testset
+r2_pcr = 1-(apply(  (housdata2[testset, 1]-predtestpcr[,1,])^2,2,sum))/sum(housdata2[testset, 1]-mean(housdata2[testset, 1])^2)
+r2_pcr
+# ne donne pas la même chose que la prof donc code surement faux pour la formule du R2
+```
+
+
+
+# PLS
+
+# Transformation du Y 
+
+```{r}
+# transformation de la variable Y des jeu de données apprentissage et test en racine carré
+upenn$total <- sqrt(upenn$total)
+gt$total <- sqrt(gt$total)
+```
+
+## PLS sur données d'apprentissage
+
+```{r}
+n_u = nrow(upenn)
+p_u = ncol(upenn)-1 # nombre de predicteurs
+
+plstrain <- plsr(total~., data=upenn, ncomp=min(n_u-1, p_u), scale = TRUE, validation = "CV")    
+
+R2(plstrain, estimate = "all")
+validationplot(plstrain, val.type = "R2", type = "b", estimate = "all")
+
+RMSEP(plstrain)
+validationplot(plstrain, type = "b", estimate = "all")
+
+ncp_pls = selectNcomp(plstrain, method = "onesigma")
+ncp_pls # nous donne une sélection de 
+```
+
+## PLS sur données test
+
+```{r}
+predtestpls = predict(plstrain, newdata = gt, type = "response")
+```
+
+```{r}
+# code à modifier surement, j'ai juste modifié le gt[,29] pour prendre le Y de gt
+rmsep_pls = sqrt(apply((gt[,29]-predtestpls[,1,])^2, 2, mean))
+
+rmsep_pls=c(rmsep0, rmsep_pls)
+round(rmsep_pls, 4)
 ```
 
