@@ -5,3 +5,26 @@ format: html
 editor: visual
 ---
 
+# Import des données
+
+```{r}
+upenn <- read.delim("upenn.txt", sep = "\t", header = TRUE)
+gt <- read.delim("gt.txt", sep = "\t", header = TRUE)
+```
+
+# Exploration des données
+
+```{r}
+# suppression de la colonne ID
+upenn = (upenn[,2:33])
+gt = (gt[,2:33])
+
+str(upenn)
+str(gt)
+```
+
+```{r}
+n = nrow(upenn)
+p = ncol(upenn)-1 # nombre de predicteurs
+```
+
