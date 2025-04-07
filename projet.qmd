@@ -161,14 +161,14 @@ validationplot(pcrtrain, type="b", estimate = "all")
 # Permet de choisir le nombre de composantes : 
 # R2 : quand le R2 cesse d'augmenter significativement
 # Forte augmentation de R2 jusqu’à 9 composantes, après ça ça stagne
-# Pour la validation croisée (triangles), nous retrouvons un plateau vers les composantes 9 à 12
+# Pour la validation croisée (triangles), nous retrouvons un plateau vers la composante 15
 
 # RMSEP : quand l'erreur d'apprentissage est minimale et commence à augmenter
 # Jusqu’à 6-7 composantes, le RMSEP est plutôt élevé et instable (surtout les triangles (erreur de validation croisée))
-# Puis, grosse chute entre 6 et 7, puis stabilisation entre 9 et 15
+# Puis, grosse chute entre 7 et 9, puis diminution 
 # Après 15, les erreurs n'améliorent quasiment plus, il y a un plateau
 
-# Alors, pour maximiser le R2 et minimiser les erreurs d'apprentissage, nous sélectionnerons 9 composantes.
+# Alors, pour maximiser le R2 et minimiser les erreurs d'apprentissage, nous sélectionnerons 15 composantes.
 
 ```
 
@@ -184,9 +184,14 @@ summary(pcrtrain2)
 # sur jeu d'apprentissage
 predtrainpcr = predict(pcrtrain2, type="response")
 cbind(pcrtrain2$fitted.values, predtrainpcr)
+# les 2 colonnes sont bien identiques, le modèle est donc bien entrainé et prédit correctement les données d'entrainement
+
 # sur jeu test
 predtestpcr = predict(pcrtrain2, newdata = gt, type = "response")
+cbind(pcrtrain2$fitted.values, predtestpcr)
+# les colonnes ne sont pas identiques mais les valeurs sont plutôt proches
 dim(predtestpcr)
+# il y a bien 30 observations, 1 variable expliquée, et 15 composantes sélectionnées
 
 rmsep_pcr=sqrt(apply(  (gt$total-predtestpcr[,1,])^2,2,mean))
 rmsep0=sqrt(mean((gt$total-mean(upenn$total))^2))
@@ -223,11 +228,10 @@ R2(plstrain2, estimate = "all")
 RMSEP(plstrain2)
 ```
 
-
 ## PLS sur données test
 
 ```{r}
-predtestpls = predict(plstrain, newdata = gt, type = "response")
+predtestpls = predict(plstrain2, newdata = gt, type = "response")
 ```
 
 ```{r}
