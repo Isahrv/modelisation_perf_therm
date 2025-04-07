@@ -147,77 +147,80 @@ est-ce qu'on doit enlever les var du coup??
 # PCR
 
 ```{r}
-## PCR
-pcrtrain<-pcr(lCMEDV~.,data=housdata2[trainset, ],ncomp=min(n-1,p),scale=TRUE, validation = "CV")    
-# on peut faire varier le nb de segment pour la validation croisée
-# ici on le laisse faire
+# sur jeu d'apprentissage
+pcrtrain <- pcr(total~.,data = upenn, ncomp = min(n-1,p), scale=TRUE, validation = "CV")    
+# le nombre de segment pour la validation croisée est choisit automatiquement
 
 R2(pcrtrain, estimate = "all")
-validationplot(pcrtrain,val.type="R2",type="b", estimate = "all")
-# estimate all pour lui demander à la fois les indicateurs pour
-# l'échantillon d'apprentissage et la cross validation
-# plus le R2 est proche du train, ???
+validationplot(pcrtrain, val.type="R2", type="b", estimate = "all")
 
 RMSEP(pcrtrain)
 validationplot(pcrtrain, type="b", estimate = "all")
-# permet aussi de choisir le nb de composante
-# 1 quand il y a un plateau
-# 2 quand l'erreur d'apprentissage devient trop importante
+# Permet de choisir le nombre de composantes : 
+# R2 : quand le R2 cesse d'augmenter significativement
+# Forte augmentation de R2 jusqu’à 9 composantes, après ça ça stagne
+# Pour la validation croisée (triangles), nous retrouvons un plateau vers les composantes 9 à 12
 
-ncp =selectNcomp(pcrtrain, method="onesigma")
-# sélectionne les composantes à garder mais va jusqu'au dernier pallier
-# donc pas forcément satisfaisant
+# RMSEP : quand l'erreur d'apprentissage est minimale et commence à augmenter
+# Jusqu’à 6-7 composantes, le RMSEP est plutôt élevé et instable (surtout les triangles (erreur de validation croisée))
+# Puis, grosse chute entre 6 et 7, puis stabilisation entre 9 et 15
+# Après 15, les erreurs n'améliorent quasiment plus, il y a un plateau
 
-pcrtrain<-pcr(lCMEDV~.,data=housdata2[trainset, ],ncomp=ncp,scale=TRUE, validation = "CV")    
-# on a sélectionné 11 composantes
+# Alors, pour maximiser le R2 et minimiser les erreurs d'apprentissage, nous sélectionnerons 9 composantes.
 
-help(predict)
-# on trainset
-predtrainpcr=predict(pcrtrain, type="response")
-cbind(pcrtrain$fitted.values,predtrainpcr)
-# on testset
-predtestpcr=predict(pcrtrain,newdata=housdata2[testset, ], type="response")
-dim(predtestpcr)
-rmsep_pcr=sqrt(apply(  (housdata2[testset, 1]-predtestpcr[,1,])^2,2,mean))
-rmsep0=sqrt(mean((housdata2[testset, 1]-mean(housdata2[trainset, 1]))^2))
-rmsep_pcr=c(rmsep0,rmsep_pcr)
-round(rmsep_pcr,4)
-
-# R2 on testset
-r2_pcr = 1-(apply(  (housdata2[testset, 1]-predtestpcr[,1,])^2,2,sum))/sum(housdata2[testset, 1]-mean(housdata2[testset, 1])^2)
-r2_pcr
-# ne donne pas la même chose que la prof donc code surement faux pour la formule du R2
 ```
-
-
-
-# PLS
-
-# Transformation du Y 
 
 ```{r}
-# transformation de la variable Y des jeu de données apprentissage et test en racine carré
-upenn$total <- sqrt(upenn$total)
-gt$total <- sqrt(gt$total)
+pcrtrain2 <- pcr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
 ```
+
+```{r}
+summary(pcrtrain2)
+```
+
+```{r}
+# sur jeu d'apprentissage
+predtrainpcr = predict(pcrtrain2, type="response")
+cbind(pcrtrain2$fitted.values, predtrainpcr)
+# sur jeu test
+predtestpcr = predict(pcrtrain2, newdata = gt, type = "response")
+dim(predtestpcr)
+
+rmsep_pcr=sqrt(apply(  (gt$total-predtestpcr[,1,])^2,2,mean))
+rmsep0=sqrt(mean((gt$total-mean(upenn$total))^2))
+rmsep_pcr=c(rmsep0,rmsep_pcr)
+round(rmsep_pcr, 4)
+```
+
+## Calcul des R2 et RMSEP du modèle avec 15 composantes
+
+```{r}
+R2(pcrtrain2, estimate = "all")
+RMSEP(pcrtrain2)
+```
+
+# PLS
 
 ## PLS sur données d'apprentissage
 
 ```{r}
-n_u = nrow(upenn)
-p_u = ncol(upenn)-1 # nombre de predicteurs
-
-plstrain <- plsr(total~., data=upenn, ncomp=min(n_u-1, p_u), scale = TRUE, validation = "CV")    
+plstrain <- plsr(total~., data=upenn, ncomp=min(n-1, p), scale = TRUE, validation = "CV")    
 
 R2(plstrain, estimate = "all")
 validationplot(plstrain, val.type = "R2", type = "b", estimate = "all")
+# On observe qu'après la dimension 16, le R2 cesse d'augmenter
 
 RMSEP(plstrain)
 validationplot(plstrain, type = "b", estimate = "all")
-
-ncp_pls = selectNcomp(plstrain, method = "onesigma")
-ncp_pls # nous donne une sélection de 
+# Le RMSEP est minimisé à la composante 17
 ```
+
+```{r}
+plstrain2 <- plsr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV") 
+R2(plstrain2, estimate = "all")
+RMSEP(plstrain2)
+```
+
 
 ## PLS sur données test
 
@@ -226,7 +229,6 @@ predtestpls = predict(plstrain, newdata = gt, type = "response")
 ```
 
 ```{r}
-# code à modifier surement, j'ai juste modifié le gt[,29] pour prendre le Y de gt
 rmsep_pls = sqrt(apply((gt[,29]-predtestpls[,1,])^2, 2, mean))
 
 rmsep_pls=c(rmsep0, rmsep_pls)
