@@ -21,7 +21,6 @@ library(car)
 # Import des données
 
 ```{r}
-setwd("C:/Users/isali/OneDrive/Documents/cours/M1 ECAP/S2/Modélisation variables latentes/modelisation_perf_therm")
 upenn <- read.delim("upenn.txt", sep = "\t", header = TRUE)
 gt <- read.delim("gt.txt", sep = "\t", header = TRUE)
 ```
@@ -68,18 +67,17 @@ plot(df_complet$total, df_complet$op_S_area)
 
 # graphique à modifier on voit rien, peut-être afficher juste les chiffres?
 ```{r}
-# matrice des correlations
-corrplot::corrplot(cor(df_complet),method="color",type="upper",
-                   addCoef.col = "black",order="FPC")
+# correlations
+round(cor(df_complet), 2)
 # on remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables
 # avec une corrélation > à 0.6 pour quasi toutes en valeur absolue
 # d'autres variables sont aussi très corrélées entre elles
-# On remarque une structure de corrélation forte 
-# => montre l'intérêt d'utiliser des méthodes à var latentes et de ne pas se limiter à la régression multiple
+# => structure de corrélation forte 
+# => montre l'intérêt d'utiliser des méthodes à variables latentes et de ne pas se limiter à la régression multiple
 ```
 
 ```{r}
-# distribution des valeurs observes pour les differentes variables 
+# distribution des valeurs observées pour les differentes variables 
 ggp<-list()
 for (i in 1:ncol(df_complet)){
     ggp[[i]] <- ggplot(df_complet, aes(x = .data[[names(upenn)[i]]])) +
@@ -106,6 +104,13 @@ ggplot(df_complet, aes(x = total))+
 boxplot(df_complet$total)
 
 # La représentation de la boîte à moustache ne nous montre pas de valeurs potentiellement atypiques. Alors, nous conserverons toutes les observations pour la suite de l'analyse.
+```
+
+## Transformation du Y pour UPENN et GT
+
+```{r}
+upenn$total <- sqrt(upenn$total)
+gt$total <- sqrt(gt$total)
 ```
 
 ## ACP
