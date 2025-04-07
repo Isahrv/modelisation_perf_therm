@@ -58,29 +58,6 @@ p = ncol(df_complet)-1 # nombre de predicteurs
 # Analyse descriptive
 
 ```{r}
-plot(df_complet$zone_area, df_complet$total)
-plot(df_complet$bldg_height, df_complet$total)
-plot(df_complet$op_S_area, df_complet$total)
-
-# graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure
-
-plot(df_complet$gl_S_area, df_complet$total)
-plot(df_complet$roof_op_area, df_complet$total)
-
-```
-
-# graphique à modifier on voit rien, peut-être afficher juste les chiffres?
-```{r}
-# correlations
-round(cor(df_complet), 2)
-# on remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables
-# avec une corrélation > à 0.6 pour quasi toutes en valeur absolue
-# d'autres variables sont aussi très corrélées entre elles
-# => structure de corrélation forte 
-# => montre l'intérêt d'utiliser des méthodes à variables latentes et de ne pas se limiter à la régression multiple
-```
-
-```{r}
 # distribution des valeurs observées pour les differentes variables 
 ggp<-list()
 for (i in 1:ncol(df_complet)){
@@ -92,6 +69,15 @@ grid.arrange(grobs=ggp, ncol=6,nrow=5)
 # La variable à expliquer, "total" peut alors être transformé en racine carré afin de voir si cela améliore la distribution de ces erreurs
 ```
 
+```{r}
+plot(df_complet$zone_area, df_complet$total)
+plot(df_complet$bldg_height, df_complet$total)
+plot(df_complet$op_S_area, df_complet$total)
+plot(df_complet$gl_S_area, df_complet$total)
+
+# graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure
+```
+
 ## Transformation du Y en racine carré
 
 ```{r}
@@ -100,38 +86,30 @@ df_complet$total <- sqrt(df_complet$total)
 ggplot(df_complet, aes(x = total))+
       geom_histogram()
 
+# Transformation du Y pour UPENN et GT
+upenn$total <- sqrt(upenn$total)
+gt$total <- sqrt(gt$total)
+
 # Nous observons désormais que la distribution de la variable Y semble davantage normale une fois mise en racine carré. Ainsi, nous conserverons cette forme pour la suite de l'analyse.
 # Néanmoins, nous constatons la présence potentielle d'une valeur atypique.
 ```
 
+## Valeurs atypiques
 ```{r}
 boxplot(df_complet$total)
 
 # La représentation de la boîte à moustache ne nous montre pas de valeurs potentiellement atypiques. Alors, nous conserverons toutes les observations pour la suite de l'analyse.
 ```
 
-## Transformation du Y pour UPENN et GT
-
+## Corrélations 
 ```{r}
-upenn$total <- sqrt(upenn$total)
-gt$total <- sqrt(gt$total)
-```
-
-## ACP
-
-```{r}
-# ACP avec Y en illustration puisqu'on fera un modèle PCR par la suite
-respca=PCA(df_complet, quanti.sup = 29, scale = TRUE)
-fviz_screeplot(respca)
-fviz_pca_var(respca)
-round(respca$var$cos2,2)
-
-# On remarque que les 2 premières dimensions à peu près 35,4% de la variance, ce qui n'est pas très élevé
-# Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment 
-# L'ACP nous confirme alors la structure de forte corrélation.
-
-# faire + d'interprétation pour la corrélation des variables avec les dimensiosn par rapport aux flèches
-
+# correlations
+round(cor(df_complet), 2)
+# on remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables
+# avec une corrélation > à 0.6 pour quasi toutes en valeur absolue
+# d'autres variables sont aussi très corrélées entre elles
+# => structure de corrélation forte 
+# => montre l'intérêt d'utiliser des méthodes à variables latentes et de ne pas se limiter à la régression multiple
 ```
 
 ## Vif
@@ -145,6 +123,26 @@ abline(h=5, col='red')
 # Nous constatons que 10 variables ont un vif supérieur à 5, donc 7 qui ont un vif supérieur à 10
 # La multicollinéarité sur ce jeu de données est très élevée.
 ```
+
+## ACP
+
+```{r}
+# ACP avec Y en illustration puisqu'on fera un modèle PCR par la suite
+respca=PCA(df_complet, quanti.sup = 29, scale = TRUE)
+fviz_screeplot(respca)
+fviz_pca_var(respca)
+round(respca$var$cos2,2)
+respca$var$contrib
+
+# On remarque que les 2 premières dimensions à peu près 35,4% de la variance, ce qui n'est pas très élevé
+# Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment 
+# L'ACP nous confirme alors la structure de forte corrélation.
+
+# faire + d'interprétation pour la corrélation des variables avec les dimensiosn par rapport aux flèches
+
+```
+
+
 
 est-ce qu'on doit enlever les var du coup??
 
