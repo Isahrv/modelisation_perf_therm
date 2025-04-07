@@ -58,11 +58,15 @@ p = ncol(df_complet)-1 # nombre de predicteurs
 # Analyse descriptive
 
 ```{r}
-plot(df_complet$total, df_complet$zone_area)
-plot(df_complet$total, df_complet$bldg_height)
-plot(df_complet$total, df_complet$op_S_area)
+plot(df_complet$zone_area, df_complet$total)
+plot(df_complet$bldg_height, df_complet$total)
+plot(df_complet$op_S_area, df_complet$total)
 
 # graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure
+
+plot(df_complet$gl_S_area, df_complet$total)
+plot(df_complet$roof_op_area, df_complet$total)
+
 ```
 
 # graphique à modifier on voit rien, peut-être afficher juste les chiffres?
