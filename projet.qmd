@@ -1,5 +1,5 @@
 ---
-title: "Projet"
+title: "Projet - Modélisation Variables Latentes"
 author: "Juliette Grison, Isaline Hervé"
 format: html
 editor: visual
@@ -34,19 +34,19 @@ colnames(upenn)
 ```
 
 ```{r}
-# création de la variable Y
+# Création de la variable Y
 upenn$total = upenn$HeatTotal+upenn$CoolTotal
 gt$total = gt$HeatTotal+gt$CoolTotal
 ```
 
 ```{r}
-# suppression des colonnes des variables qui ne servent plus (qui ont servis pour le Y, et ID)
+# Suppression des colonnes des variables qui ne servent plus (qui ont servis pour le Y, et ID)
 upenn = (upenn[,6:34])
 gt = (gt[,6:34])
 ```
 
 ```{r}
-# création du jeu de données complet
+# Création du jeu de données complet
 df_complet <- rbind(upenn, gt)
 ```
 
@@ -58,15 +58,15 @@ p = ncol(df_complet)-1 # nombre de predicteurs
 # Analyse descriptive
 
 ```{r}
-# distribution des valeurs observées pour les differentes variables 
+# Distribution des valeurs observées pour les differentes variables 
 ggp<-list()
 for (i in 1:ncol(df_complet)){
     ggp[[i]] <- ggplot(df_complet, aes(x = .data[[names(upenn)[i]]])) +
     geom_histogram()
 }
 grid.arrange(grobs=ggp, ncol=6,nrow=5) 
-# Nous observons que de nombreuses variables n'ont pas une distribution qui paraît normale
-# La variable à expliquer, "total" peut alors être transformé en racine carré afin de voir si cela améliore la distribution de ces erreurs
+# Nous observons que de nombreuses variables n'ont pas une distribution qui paraît normale.
+# La variable à expliquer, "total" peut alors être transformé en racine carré afin de voir si cela améliore la distribution de ces erreurs.
 ```
 
 ```{r}
@@ -74,8 +74,7 @@ plot(df_complet$zone_area, df_complet$total)
 plot(df_complet$bldg_height, df_complet$total)
 plot(df_complet$op_S_area, df_complet$total)
 plot(df_complet$gl_S_area, df_complet$total)
-
-# graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure
+# Graphiques pour voir les liens entres les variables X et la variable Y, afin de voir si le modèle convient bien à l'ensemble des données et s'il n'y a pas de problèmes de structure.
 ```
 
 ## Transformation du Y en racine carré
@@ -94,20 +93,19 @@ gt$total <- sqrt(gt$total)
 # Néanmoins, nous constatons la présence potentielle d'une valeur atypique.
 ```
 
-## Valeurs atypiques
+## Boîte à moustache
+
 ```{r}
 boxplot(df_complet$total)
-
 # La représentation de la boîte à moustache ne nous montre pas de valeurs potentiellement atypiques. Alors, nous conserverons toutes les observations pour la suite de l'analyse.
 ```
 
 ## Corrélations 
+
 ```{r}
-# correlations
 round(cor(df_complet), 2)
-# on remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables
-# avec une corrélation > à 0.6 pour quasi toutes en valeur absolue
-# d'autres variables sont aussi très corrélées entre elles
+# On remarque que zone_area, op_E_area sont globalement quasiment corrélées avec toutes les variables avec une corrélation > à 0.6 pour quasi toutes en valeur absolue.
+# D'autres variables sont aussi très corrélées entre elles
 # => structure de corrélation forte 
 # => montre l'intérêt d'utiliser des méthodes à variables latentes et de ne pas se limiter à la régression multiple
 ```
@@ -119,39 +117,31 @@ model.lm = lm(total~., data = df_complet)
 summary(model.lm)
 barplot(vif(model.lm), las = 2)
 abline(h=5, col='red')
-
-# Nous constatons que 10 variables ont un vif supérieur à 5, donc 7 qui ont un vif supérieur à 10
+# Nous constatons que 10 variables ont un vif supérieur à 5, dont 7 qui ont un vif supérieur à 10.
 # La multicollinéarité sur ce jeu de données est très élevée.
 ```
 
 ## ACP
 
 ```{r}
-# ACP avec Y en illustration puisqu'on fera un modèle PCR par la suite
+# ACP avec Y en illustration puisqu'on fera un modèle PCR par la suite : 
 respca=PCA(df_complet, quanti.sup = 29, scale = TRUE)
 fviz_screeplot(respca)
 fviz_pca_var(respca)
 round(respca$var$cos2,2)
 respca$var$contrib
-
-# On remarque que les 2 premières dimensions à peu près 35,4% de la variance, ce qui n'est pas très élevé
-# Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment 
+# On remarque que les 2 premières dimensions représentent à peu près 35,4% de la variance, ce qui n'est pas très élevé.
+# Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment.
 # L'ACP nous confirme alors la structure de forte corrélation.
-
-# faire + d'interprétation pour la corrélation des variables avec les dimensiosn par rapport aux flèches
-
 ```
-
-
-
-est-ce qu'on doit enlever les var du coup??
 
 # PCR
 
+## Avec nombre maximal de composantes
+
 ```{r}
-# sur jeu d'apprentissage
 pcrtrain <- pcr(total~.,data = upenn, ncomp = min(n-1,p), scale=TRUE, validation = "CV")    
-# le nombre de segment pour la validation croisée est choisit automatiquement
+# Le nombre de segment pour la validation croisée est choisit automatiquement.
 
 R2(pcrtrain, estimate = "all")
 validationplot(pcrtrain, val.type="R2", type="b", estimate = "all")
@@ -160,55 +150,27 @@ RMSEP(pcrtrain)
 validationplot(pcrtrain, type="b", estimate = "all")
 # Permet de choisir le nombre de composantes : 
 # R2 : quand le R2 cesse d'augmenter significativement
-# Forte augmentation de R2 jusqu’à 9 composantes, après ça ça stagne
-# Pour la validation croisée (triangles), nous retrouvons un plateau vers la composante 15
+# Forte augmentation de R2 jusqu’à 9 composantes, après ça ça stagne.
+# Pour la validation croisée (triangles), nous retrouvons un plateau vers la composante 15.
 
 # RMSEP : quand l'erreur d'apprentissage est minimale et commence à augmenter
 # Jusqu’à 6-7 composantes, le RMSEP est plutôt élevé et instable (surtout les triangles (erreur de validation croisée))
-# Puis, grosse chute entre 7 et 9, puis diminution 
-# Après 15, les erreurs n'améliorent quasiment plus, il y a un plateau
+# Puis, grosse chute entre 7 et 9, puis diminution. 
+# Après 15, les erreurs n'améliorent quasiment plus, il y a un plateau.
 
 # Alors, pour maximiser le R2 et minimiser les erreurs d'apprentissage, nous sélectionnerons 15 composantes.
-
 ```
+
+## Sur apprentissage
 
 ```{r}
 pcrtrain2 <- pcr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
-```
 
-```{r}
-summary(pcrtrain2)
-```
-
-```{r}
-# sur jeu d'apprentissage
 predtrainpcr = predict(pcrtrain2, type="response")
 cbind(pcrtrain2$fitted.values, predtrainpcr)
-# les 2 colonnes sont bien identiques, le modèle est donc bien entrainé et prédit correctement les données d'entrainement
+# Les 2 colonnes sont bien identiques, le modèle est donc bien entrainé et prédit correctement les données d'entrainement.
 
-# sur jeu test
-predtestpcr = predict(pcrtrain2, newdata = gt, type = "response")
-cbind(pcrtrain2$fitted.values, predtestpcr)
-# les colonnes ne sont pas identiques mais les valeurs sont plutôt proches
-dim(predtestpcr)
-# il y a bien 30 observations, 1 variable expliquée, et 15 composantes sélectionnées
-```
-
-## Calcul des R2 et RMSEP sur le modèle test
-
-```{r}
-r2_pcr = 1-(apply(  (gt$total-predtestpcr[,1,])^2,2,sum))/sum((gt$total-mean(gt$total))^2)
-r2_pcr
-
-rmsep_pcr=sqrt(apply(  (gt$total-predtestpcr[,1,])^2,2,mean))
-rmsep0=sqrt(mean((gt$total-mean(upenn$total))^2))
-rmsep_pcr=c(rmsep0,rmsep_pcr)
-round(rmsep_pcr, 4)
-```
-
-## Calcul des R2 et RMSEP sur le modèle app
-
-```{r}
+# Calcul du R2 et RMSEP : 
 R2(pcrtrain2, estimate = "all")
 RMSEP(pcrtrain2)
 
@@ -218,32 +180,49 @@ rmsep_pcr=c(rmsep0,rmsep_pcr)
 round(rmsep_pcr, 4)
 ```
 
+## Sur test
+
+```{r}
+predtestpcr = predict(pcrtrain2, newdata = gt, type = "response")
+cbind(pcrtrain2$fitted.values, predtestpcr)
+# Les colonnes ne sont pas identiques mais les valeurs semblent plutôt proches.
+dim(predtestpcr)
+# Il y a bien 30 observations, 1 variable expliquée, et 15 composantes sélectionnées.
+
+# Calcul du R2 et RMSEP : 
+r2_pcr = 1-(apply(  (gt$total-predtestpcr[,1,])^2,2,sum))/sum((gt$total-mean(gt$total))^2)
+r2_pcr
+
+rmsep_pcr=sqrt(apply(  (gt$total-predtestpcr[,1,])^2,2,mean))
+rmsep0=sqrt(mean((gt$total-mean(upenn$total))^2))
+rmsep_pcr=c(rmsep0,rmsep_pcr)
+round(rmsep_pcr, 4)
+```
+
 # PLS
 
-## PLS sur données d'apprentissage
+## Avec nombre de composantes maximal
 
 ```{r}
 plstrain <- plsr(total~., data=upenn, ncomp=min(n-1, p), scale = TRUE, validation = "CV")    
 
 R2(plstrain, estimate = "all")
 validationplot(plstrain, val.type = "R2", type = "b", estimate = "all")
-# On observe qu'après la dimension 16, le R2 cesse d'augmenter
+# On observe qu'après la dimension 16, le R2 cesse d'augmenter.
 
 RMSEP(plstrain)
 validationplot(plstrain, type = "b", estimate = "all")
-# Le RMSEP est minimisé à la composante 17
+# Le RMSEP est minimisé à la composante 17.
 ```
+
+## Sur apprentissage
 
 ```{r}
 plstrain2 <- plsr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
 
 predtrainpls = predict(plstrain2, type="response")
 cbind(plstrain2$fitted.values, predtrainpls)
-```
 
-## Calcul du R2 et RMSEP sur modèle app
-
-```{r}
 R2(plstrain2, estimate = "all")
 RMSEP(plstrain2)
 
@@ -253,7 +232,7 @@ rmsep_pls=c(rmsep0,rmsep_pls)
 round(rmsep_pls, 4)
 ```
 
-## PLS sur données test
+## Sur test
 
 ```{r}
 predtestpls = predict(plstrain2, newdata = gt, type = "response")
@@ -266,4 +245,3 @@ rmsep_pls = sqrt(apply(
 rmsep_pls=c(rmsep0, rmsep_pls)
 round(rmsep_pls, 4)
 ```
-
