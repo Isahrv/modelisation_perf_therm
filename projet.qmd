@@ -129,7 +129,6 @@ respca=PCA(df_complet, quanti.sup = 29, scale = TRUE)
 fviz_screeplot(respca)
 fviz_pca_var(respca)
 round(respca$var$cos2,2)
-respca$var$contrib
 # On remarque que les 2 premières dimensions représentent à peu près 35,4% de la variance, ce qui n'est pas très élevé.
 # Nous constatons également des corrélations fortes entre les variables "area" et entre les variables"week" notamment.
 # L'ACP nous confirme alors la structure de forte corrélation.
@@ -245,3 +244,10 @@ rmsep_pls = sqrt(apply(
 rmsep_pls=c(rmsep0, rmsep_pls)
 round(rmsep_pls, 4)
 ```
+
+## Interprétation
+
+```{r}
+loadings(plstrain2)
+```
+
