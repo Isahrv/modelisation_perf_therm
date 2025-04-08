@@ -192,6 +192,13 @@ cbind(pcrtrain2$fitted.values, predtestpcr)
 # les colonnes ne sont pas identiques mais les valeurs sont plutôt proches
 dim(predtestpcr)
 # il y a bien 30 observations, 1 variable expliquée, et 15 composantes sélectionnées
+```
+
+## Calcul des R2 et RMSEP sur le modèle test
+
+```{r}
+r2_pcr = 1-(apply(  (gt$total-predtestpcr[,1,])^2,2,sum))/sum((gt$total-mean(gt$total))^2)
+r2_pcr
 
 rmsep_pcr=sqrt(apply(  (gt$total-predtestpcr[,1,])^2,2,mean))
 rmsep0=sqrt(mean((gt$total-mean(upenn$total))^2))
@@ -199,11 +206,16 @@ rmsep_pcr=c(rmsep0,rmsep_pcr)
 round(rmsep_pcr, 4)
 ```
 
-## Calcul des R2 et RMSEP du modèle avec 15 composantes
+## Calcul des R2 et RMSEP sur le modèle app
 
 ```{r}
 R2(pcrtrain2, estimate = "all")
 RMSEP(pcrtrain2)
+
+rmsep_pcr=sqrt(apply(  (upenn$total-predtrainpcr[,1,])^2,2,mean))
+rmsep0=sqrt(mean((upenn$total-mean(upenn$total))^2))
+rmsep_pcr=c(rmsep0,rmsep_pcr)
+round(rmsep_pcr, 4)
 ```
 
 # PLS
@@ -223,20 +235,34 @@ validationplot(plstrain, type = "b", estimate = "all")
 ```
 
 ```{r}
-plstrain2 <- plsr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV") 
+plstrain2 <- plsr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
+
+predtrainpls = predict(plstrain2, type="response")
+cbind(plstrain2$fitted.values, predtrainpls)
+```
+
+## Calcul du R2 et RMSEP sur modèle app
+
+```{r}
 R2(plstrain2, estimate = "all")
 RMSEP(plstrain2)
+
+rmsep_pls=sqrt(apply(  (upenn$total-predtrainpls[,1,])^2,2,mean))
+rmsep0=sqrt(mean((upenn$total-mean(upenn$total))^2))
+rmsep_pls=c(rmsep0,rmsep_pls)
+round(rmsep_pls, 4)
 ```
 
 ## PLS sur données test
 
 ```{r}
 predtestpls = predict(plstrain2, newdata = gt, type = "response")
-```
 
-```{r}
-rmsep_pls = sqrt(apply((gt[,29]-predtestpls[,1,])^2, 2, mean))
+r2_pls = 1-(apply(  (gt$total-predtestpls[,1,])^2,2,sum))/sum((gt$total-mean(gt$total))^2)
+r2_pls
 
+rmsep_pls = sqrt(apply(
+(gt$total-predtestpls[,1,])^2, 2, mean))
 rmsep_pls=c(rmsep0, rmsep_pls)
 round(rmsep_pls, 4)
 ```
