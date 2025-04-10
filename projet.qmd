@@ -139,6 +139,7 @@ round(respca$var$cos2,2)
 ## Avec nombre maximal de composantes
 
 ```{r}
+set.seed(123)
 pcrtrain <- pcr(total~.,data = upenn, ncomp = min(n-1,p), scale=TRUE, validation = "CV")    
 # Le nombre de segment pour la validation croisée est choisit automatiquement.
 
@@ -163,6 +164,7 @@ validationplot(pcrtrain, type="b", estimate = "all")
 ## Sur apprentissage
 
 ```{r}
+set.seed(123)
 pcrtrain2 <- pcr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
 
 predtrainpcr = predict(pcrtrain2, type="response")
@@ -203,11 +205,12 @@ round(rmsep_pcr, 4)
 ## Avec nombre de composantes maximal
 
 ```{r}
+set.seed(123)
 plstrain <- plsr(total~., data=upenn, ncomp=min(n-1, p), scale = TRUE, validation = "CV")    
 
 R2(plstrain, estimate = "all")
 validationplot(plstrain, val.type = "R2", type = "b", estimate = "all")
-# On observe qu'après la dimension 16, le R2 cesse d'augmenter.
+# On observe qu'après la dimension 17, le R2 cesse d'augmenter.
 
 RMSEP(plstrain)
 validationplot(plstrain, type = "b", estimate = "all")
@@ -217,6 +220,7 @@ validationplot(plstrain, type = "b", estimate = "all")
 ## Sur apprentissage
 
 ```{r}
+set.seed(123)
 plstrain2 <- plsr(total~., data = upenn, ncomp = 15, scale = TRUE, validation = "CV")
 
 predtrainpls = predict(plstrain2, type="response")
